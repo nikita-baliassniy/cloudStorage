@@ -1,6 +1,7 @@
 package nio;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -9,11 +10,16 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 public class NioTelnetServer {
 
     private final ByteBuffer buffer = ByteBuffer.allocate(1024);
-    private final String rootPath = "server";
+    private final String defaultRootPath = "server";
+    private String rootPath = defaultRootPath;
 
     public NioTelnetServer() throws IOException {
         ServerSocketChannel server = ServerSocketChannel.open();
@@ -39,7 +45,7 @@ public class NioTelnetServer {
         }
     }
 
-    // TODO: 30.10.2020
+    // 30.10.2020
     //  ls - список файлов (сделано на уроке),
     //  cd (name) - перейти в папку
     //  touch (name) создать текстовый файл с именем
@@ -70,25 +76,135 @@ public class NioTelnetServer {
                 .replace("\r", "");
         System.out.println(command);
         if (command.equals("--help")) {
-            channel.write(ByteBuffer.wrap("input ls for show file list".getBytes()));
+            channel.write(ByteBuffer.wrap("input ls for show file list ; ".getBytes()));
+            channel.write(ByteBuffer.wrap("input cd <dir> to get into directory ; ".getBytes()));
+            channel.write(ByteBuffer.wrap("input cat <file> to read file ; ".getBytes()));
+            channel.write(ByteBuffer.wrap("input touch <file> to create text file ; ".getBytes()));
+            channel.write(ByteBuffer.wrap("input mkdir <dir> to create a directory ; ".getBytes()));
+            channel.write(ByteBuffer.wrap("input rm <dir> to remove a file ; ".getBytes()));
+            channel.write(ByteBuffer.wrap("input copy <source> <target> to copy a file to another directory ; ".getBytes()));
+        } else if (command.equals("ls")) {
+            System.out.println((getFilesList()));
+            channel.write(ByteBuffer.wrap((getFilesList()).getBytes()));
+        } else if (command.startsWith("cd ")) {
+            String dir = command.split(" ")[1];
+            if (getFilesList().contains(dir)) {
+                rootPath = rootPath + "/" + dir;
+                System.out.println("Root is now " + rootPath);
+                channel.write(ByteBuffer.wrap(("Root is now " + rootPath + " ").getBytes()));
+            } else if (dir.equals("..")) {
+                if (!rootPath.equals(defaultRootPath)) {
+                    rootPath = rootPath.substring(0, rootPath.lastIndexOf("/"));
+                    System.out.println("Root is now " + rootPath);
+                    channel.write(ByteBuffer.wrap(("Root is now " + rootPath + " ").getBytes()));
+                }
+            } else {
+                channel.write(ByteBuffer.wrap("No such directory ".getBytes()));
+            }
+        } else if (command.startsWith("touch ")) {
+            String file = command.split(" ")[1];
+            if (getFilesList().contains(file) && !new File(file).isDirectory()) {
+                channel.write(ByteBuffer.wrap("There is already a file with such name ".getBytes()));
+            } else {
+                Files.createFile(Paths.get(rootPath + "/" + file));
+            }
+        } else if (command.startsWith("mkdir ")) {
+            String dir = command.split(" ")[1];
+            if (getFilesList().contains(dir) && new File(dir).isDirectory()) {
+                channel.write(ByteBuffer.wrap("There is already a directory with such name ".getBytes()));
+            } else {
+                Files.createDirectories(Paths.get(rootPath + "/" + dir));
+            }
+        } else if (command.startsWith("cat ")) {
+            String file = command.split(" ")[1];
+            if (getFilesList().contains(file) && !new File(file).isDirectory()) {
+                FileInputStream fileBytes = new FileInputStream(rootPath + "/" + file);
+                int r = 0;
+                byte[] buffer = new byte[256];
+                while ((r = fileBytes.read(buffer)) != -1) {
+                    channel.write(ByteBuffer.wrap(buffer));
+                }
+                fileBytes.close();
+            } else {
+                channel.write(ByteBuffer.wrap("No such file ".getBytes()));
+            }
+        } else if (command.startsWith("rm ")) {
+            String file = command.split(" ")[1];
+            if (getFilesList().contains(file) && !new File(file).isDirectory()) {
+                Files.delete(Paths.get(rootPath + "/" + file));
+            } else if (new File(file).exists() && !new File(file).isDirectory()) {
+                Files.delete(Paths.get(rootPath));
+            } else {
+                channel.write(ByteBuffer.wrap("No such file ".getBytes()));
+            }
+        } else if (command.startsWith("copy ")) {
+            String file = command.split(" ")[1];
+            String destination = command.split(" ")[2];
+            System.out.println(file);
+            System.out.println(destination);
+            Path fromPath = null;
+            Path toPath = null;
+            // Если в качестве исходного пути был задан файл от текущей папки
+            if (new File(rootPath + "/" + file).exists()
+                    && !new File(rootPath + "/" + file).isDirectory()) {
+                fromPath = Paths.get(rootPath + "/" + file);
+            } // Если в качестве исходного пути был задан файл с абсолютным путем
+            else if (new File(file).exists() && !new File(file).isDirectory()) {
+                fromPath = Paths.get(file);
+            } else {
+                channel.write(ByteBuffer.wrap("No such file ".getBytes()));
+            }
+            if (fromPath != null) {
+                // Если был задан абсолютный путь
+                if (new File(destination).exists() && new File(destination).isDirectory()) {
+                    // Путь был до папки
+                    if (new File(destination).isDirectory()) {
+                        toPath = Paths.get(destination + "/" + fromPath.getFileName());
+                        // Путь был до конкретного файла
+                    } else {
+                        channel.write(ByteBuffer.wrap("The file will be replaced ".getBytes()));
+                        toPath = Paths.get(destination);
+                    }
+                    //Если был задан относительный путь от текущей папки
+                } else if (new File(rootPath + "/" + destination).exists()) {
+                    System.out.println(destination);
+                    // Путь был до папки
+                    if (new File(rootPath + "/" + destination).isDirectory()) {
+                        toPath = Paths.get(rootPath + "/" + destination + "/" + fromPath.getFileName());
+                        // Путь был до конкретного файла
+                    } else {
+                        channel.write(ByteBuffer.wrap("The file will be replaced ".getBytes()));
+                        toPath = Paths.get(rootPath + "/" + destination);
+                    }
+                }
+                if (toPath != null) {
+                    Files.copy(fromPath, toPath, StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    channel.write(ByteBuffer.wrap("Error with target path ".getBytes()));
+                }
+            }
         }
-        if (command.equals("ls")) {
-            channel.write(ByteBuffer.wrap(getFilesList().getBytes()));
-        }
-
     }
+
 
     private void sendMessage(String message, Selector selector) throws IOException {
         for (SelectionKey key : selector.keys()) {
             if (key.isValid() && key.channel() instanceof SocketChannel) {
-                ((SocketChannel)key.channel())
+                ((SocketChannel) key.channel())
                         .write(ByteBuffer.wrap(message.getBytes()));
             }
         }
     }
 
     private String getFilesList() {
-        return String.join(" ", new File(rootPath).list());
+        String[] files = new File(rootPath).list();
+        String result = "";
+        if (files.length > 0) {
+            result = String.join(" ", files);
+        } else {
+            result = "No files in current directory ";
+        }
+        return result;
     }
 
     private void handleAccept(SelectionKey key, Selector selector) throws IOException {
@@ -96,7 +212,7 @@ public class NioTelnetServer {
         channel.configureBlocking(false);
         System.out.println("Client accepted. IP: " + channel.getRemoteAddress());
         channel.register(selector, SelectionKey.OP_READ, "LOL");
-        channel.write(ByteBuffer.wrap("Enter --help".getBytes()));
+        channel.write(ByteBuffer.wrap("Enter --help\n".getBytes()));
     }
 
     public static void main(String[] args) throws IOException {
