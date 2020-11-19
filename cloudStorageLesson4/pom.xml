@@ -6,6 +6,7 @@
 
     <groupId>com.geekbrains</groupId>
     <artifactId>cloudStorageLesson4</artifactId>
+    <packaging>pom</packaging>
     <version>1</version>
 
     <build>
@@ -21,15 +22,11 @@
             </plugin>
         </plugins>
     </build>
-
-    <dependencies>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>4.1.51.Final</version>
-        </dependency>
-    </dependencies>
-
+    <modules>
+        <module>core</module>
+        <module>server</module>
+        <module>client</module>
+    </modules>
 
 
 </project>
