@@ -14,7 +14,6 @@ public class TableRequest extends AbstractRequest {
     private List<FileHandler> fileTable;
 
     public void createTable(Path path) throws IOException {
-        System.out.println(path.toAbsolutePath());
         fileTable = new ArrayList<>();
         Files.list(path).forEach((p) -> {
             this.fileTable.add(new FileHandler(p));
