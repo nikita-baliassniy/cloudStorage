@@ -1,5 +1,6 @@
 package handlers;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 /**
@@ -10,5 +11,7 @@ public interface UserService {
     String getStorage(String login, String password) throws SQLException;
 
     boolean addUser(String login, String password);
+
+    boolean isLoginFree(String login) throws SQLException;
 
 }

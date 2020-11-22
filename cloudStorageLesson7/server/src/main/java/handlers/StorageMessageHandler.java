@@ -99,7 +99,7 @@ public class StorageMessageHandler extends SimpleChannelInboundHandler<AbstractR
                 case REGISTER:
                     String login1 = commandRequest.getArg1();
                     String password1 = commandRequest.getArg2();
-                    if (userService.getStorage(login1, password1) == null) {
+                    if (userService.isLoginFree(login1)) {
                         boolean userAdded = userService.addUser(login1, password1);
                         if (userAdded) {
                             ctx.writeAndFlush(new CommandRequest(CommandType.REGISTER, "OK", userService.getStorage(login1, password1)));

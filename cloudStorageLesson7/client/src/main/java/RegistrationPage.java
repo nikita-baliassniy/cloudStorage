@@ -102,7 +102,7 @@ public class RegistrationPage extends JFrame {
         if (!tfLogin.getText().equals("") && !pfPassword.getText().equals("") && !pfPassword2.getText().equals("")) {
             if (pfPassword.getText().equals(pfPassword2.getText())) {
                 Network.getInstance().sendMessage(new CommandRequest(CommandType.REGISTER, tfLogin.getText(), pfPassword.getText()));
-                LOGGER.info("Registration attempt for use <" + tfLogin.getText() + ">");
+                LOGGER.info("Registration attempt for user <" + tfLogin.getText() + ">");
                 clearFields();
             } else {
                 JOptionPane.showMessageDialog(this, "Passwords are different!",
