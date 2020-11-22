@@ -9,7 +9,7 @@ import java.nio.file.*;
 /**
  * Основной хендлер сервера
  */
-public class ChatMessageHandler extends SimpleChannelInboundHandler<AbstractRequest> {
+public class StorageMessageHandler extends SimpleChannelInboundHandler<AbstractRequest> {
 
     UserServiceImpl userService = new UserServiceImpl();
 
@@ -36,12 +36,10 @@ public class ChatMessageHandler extends SimpleChannelInboundHandler<AbstractRequ
                     fileRequest.getContent(), StandardOpenOption.CREATE);
             ctx.writeAndFlush(new CommandRequest(CommandType.UPLOAD, "OK"));
         } else if (msg instanceof CommandRequest) {
-            System.out.println("Request");
             CommandRequest commandRequest = (CommandRequest) msg;
             switch (commandRequest.getCommandType()) {
                 // Получен запрос списка файлов
                 case LIST:
-                    System.out.println("LIST");
                     TableRequest tableRequest = new TableRequest();
                     String stringRoot = commandRequest.getArg1();
                     if (!Files.exists(Paths.get(stringRoot)) &&
@@ -49,13 +47,11 @@ public class ChatMessageHandler extends SimpleChannelInboundHandler<AbstractRequ
                         Files.createDirectory(Paths.get(stringRoot));
                     }
                     tableRequest.createTable(Paths.get(stringRoot));
-                    System.out.println("SIZE OF TABLE " + tableRequest.getFileTable().size());
                     ctx.writeAndFlush(tableRequest);
                     break;
                 // Получен запрос на скачивание из хранилища
                 case DOWNLOAD:
                     if (Files.exists(Paths.get(commandRequest.getArg1()))) {
-                        System.out.println("DOWNLOAD " + commandRequest.getArg1());
                         FileRequest fileRequest = new FileRequest(Path.of(commandRequest.getArg1()));
                         ctx.writeAndFlush(fileRequest);
                     }
@@ -91,7 +87,6 @@ public class ChatMessageHandler extends SimpleChannelInboundHandler<AbstractRequ
                     break;
                 // Получен запрос на авторизацию
                 case AUTH:
-                    System.out.println("AUTH");
                     String login = commandRequest.getArg1();
                     String password = commandRequest.getArg2();
                     if (userService.getStorage(login, password) != null) {
@@ -102,10 +97,9 @@ public class ChatMessageHandler extends SimpleChannelInboundHandler<AbstractRequ
                     break;
                 // Получен запрос на регистрацию
                 case REGISTER:
-                    System.out.println("REGISTER");
                     String login1 = commandRequest.getArg1();
                     String password1 = commandRequest.getArg2();
-                    if (userService.getStorage(login1, password1) == null) {
+                    if (userService.isLoginFree(login1)) {
                         boolean userAdded = userService.addUser(login1, password1);
                         if (userAdded) {
                             ctx.writeAndFlush(new CommandRequest(CommandType.REGISTER, "OK", userService.getStorage(login1, password1)));

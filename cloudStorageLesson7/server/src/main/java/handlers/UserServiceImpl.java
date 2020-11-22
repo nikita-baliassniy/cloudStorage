@@ -1,5 +1,6 @@
 package handlers;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,10 +19,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public String getStorage(String login, String password) throws SQLException {
         try {
-            System.out.println("IM IN SERVICE");
             ps = DBHandler.getInstance()
                     .connection()
-                    .prepareStatement("SELECT storage FROM USERS WHERE " +
+                    .prepareStatement("SELECT storage FROM storage.USERS WHERE " +
                             "login = ?" +
                             " AND password = ?"
                     );
@@ -30,7 +30,6 @@ public class UserServiceImpl implements UserService {
             ResultSet resultSet = ps.executeQuery();
             if (resultSet.next()) {
                 String s = resultSet.getString(1);
-                System.out.println(s);
                 ps.close();
                 return s;
             }
@@ -47,7 +46,7 @@ public class UserServiceImpl implements UserService {
             String storage = "server/" + login;
             ps = DBHandler.getInstance()
                     .connection()
-                    .prepareStatement("INSERT INTO USERS (login, password, storage, authorized)" +
+                    .prepareStatement("INSERT INTO storage.USERS (login, password, storage, authorized)" +
                             " VALUES (?, ?, ?, 1)");
             ps.setString(1, login);
             ps.setString(2, password);
@@ -61,4 +60,25 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public boolean isLoginFree(String login) throws SQLException {
+        try {
+            ps = DBHandler.getInstance()
+                    .connection()
+                    .prepareStatement("SELECT storage FROM storage.USERS WHERE " +
+                            "login = ?"
+                    );
+            ps.setString(1, login);
+            ResultSet resultSet = ps.executeQuery();
+            if (resultSet.next()) {
+                String s = resultSet.getString(1);
+                ps.close();
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        ps.close();
+        return true;
+    }
 }

@@ -1,5 +1,7 @@
 import common.CommandRequest;
 import common.CommandType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -14,10 +16,11 @@ import java.io.IOException;
  */
 public class MainClientPage extends JFrame {
 
-    private JTextField tfLogin;
-    private JPasswordField pfPassword;
+    private PlaceholderTextField tfLogin;
+    private PlaceholderPasswordField pfPassword;
     private JFrame frame;
     private final String iconPath = "client/src/main/resources/cloud2.png";
+    public static final Logger LOGGER = LogManager.getLogger(MainClientPage.class);
 
     public MainClientPage() {
         Network.getInstance();
@@ -28,24 +31,22 @@ public class MainClientPage extends JFrame {
         lHeader.setForeground(Color.blue);
         lHeader.setFont(new Font("Serif", Font.BOLD, 20));
 
-        JLabel lLogin = new JLabel("Login");
-        JLabel lPassword = new JLabel("Password");
-        tfLogin = new JTextField();
-        pfPassword = new JPasswordField();
+        tfLogin = new PlaceholderTextField();
+        tfLogin.setPlaceholder("LOGIN");
+        pfPassword = new PlaceholderPasswordField();
+        pfPassword.setPlaceholder("Password");
         JButton bSubmit = new JButton("Submit");
         JButton bClear = new JButton("Clear");
         JLabel lNewHere = new JLabel("If you are new here, first - ");
         JLabel lRegistration = new JLabel("register");
 
-        lHeader.setBounds(150, 20, 400, 30);
-        lLogin.setBounds(50, 70, 100, 30);
-        lPassword.setBounds(50, 110, 100, 30);
-        tfLogin.setBounds(150, 70, 200, 30);
-        pfPassword.setBounds(150, 110, 200, 30);
-        bSubmit.setBounds(150, 160, 98, 30);
-        bClear.setBounds(250, 160, 98, 30);
-        lNewHere.setBounds(150, 200, 170, 30);
-        lRegistration.setBounds(300, 200, 100, 30);
+        lHeader.setBounds(190, 70, 400, 30);
+        tfLogin.setBounds(120, 100, 200, 25);
+        pfPassword.setBounds(120, 140, 200, 25);
+        bSubmit.setBounds(120, 180, 98, 25);
+        bClear.setBounds(220, 180, 98, 25);
+        lNewHere.setBounds(120, 210, 170, 30);
+        lRegistration.setBounds(270, 211, 100, 30);
         lRegistration.setForeground(Color.blue);
         lRegistration.setFont(new Font("Times New Roman", Font.ITALIC, 13));
 
@@ -67,22 +68,21 @@ public class MainClientPage extends JFrame {
             logIn();
         });
 
+        MainImage mainImage = new MainImage();
+        mainImage.setBounds(5, 5, 450, 300);
         frame.add(lHeader);
-        frame.add(lLogin);
         frame.add(tfLogin);
-        frame.add(lPassword);
         frame.add(pfPassword);
         frame.add(bSubmit);
         frame.add(bClear);
         frame.add(lNewHere);
         frame.add(lRegistration);
-
-        frame.setSize(450, 300);
+        frame.setSize(450, 310);
         frame.setLayout(null);
+        frame.add(mainImage);
         frame.setResizable(false);
         frame.setVisible(true);
         frame.setLocationRelativeTo(null);
-
         try {
             Image image = ImageIO.read(new File(iconPath));
             frame.setIconImage(image);
@@ -98,13 +98,14 @@ public class MainClientPage extends JFrame {
                 CommandRequest commandRequest = (CommandRequest) o;
                 if (commandRequest.getCommandType() == CommandType.AUTH
                         && commandRequest.getArg1().equals("OK")) {
-                    System.out.println(commandRequest.getArg2());
+                    LOGGER.info("Authorization successful");
                     TablePage tablePage = new TablePage(commandRequest.getArg2());
                     frame.dispose();
                 } else if (commandRequest.getCommandType() == CommandType.AUTH
                         && commandRequest.getArg1().equals("ERROR")) {
                     JOptionPane.showMessageDialog(this, "Wrong credentials!",
                             "ERROR", JOptionPane.ERROR_MESSAGE);
+                    LOGGER.warn("Authorization attempt failed due to wrong credentials");
                 }
             }
         })).start();
@@ -114,10 +115,12 @@ public class MainClientPage extends JFrame {
         init();
         if (!tfLogin.getText().equals("") && !pfPassword.getText().equals("")) {
             Network.getInstance().sendMessage(new CommandRequest(CommandType.AUTH, tfLogin.getText(), pfPassword.getText()));
+            LOGGER.info("Authorization attempt for user <" + tfLogin.getText() + ">");
             clearFields();
         } else {
             JOptionPane.showMessageDialog(this, "Fill all fields!",
                     "ERROR", JOptionPane.ERROR_MESSAGE);
+            LOGGER.warn("Authorization attempt failed due to empty fields");
         }
     }
 

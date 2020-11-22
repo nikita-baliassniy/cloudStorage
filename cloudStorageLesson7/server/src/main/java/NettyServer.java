@@ -8,7 +8,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
-import handlers.ChatMessageHandler;
+import handlers.StorageMessageHandler;
 
 /**
  * Запускаемый класс сервера
@@ -28,7 +28,7 @@ public class NettyServer {
                             channel.pipeline().addLast(
                                     new ObjectDecoder(ClassResolvers.cacheDisabled(null)),
                                     new ObjectEncoder(),
-                                    new ChatMessageHandler()
+                                    new StorageMessageHandler()
                             );
                         }
                     });

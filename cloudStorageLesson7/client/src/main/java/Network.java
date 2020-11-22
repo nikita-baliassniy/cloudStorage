@@ -59,7 +59,6 @@ public class Network {
 
     public boolean sendMessage(AbstractRequest request) {
         try {
-            System.out.println("TRY");
             channel.writeAndFlush(request);
             return true;
         } catch (Exception e) {
