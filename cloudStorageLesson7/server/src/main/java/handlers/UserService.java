@@ -1,6 +1,5 @@
 package handlers;
 
-import java.io.IOException;
 import java.sql.SQLException;
 
 /**
